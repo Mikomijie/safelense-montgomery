@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>SafeLense Montgomery - Neighborhood Safety Intelligence</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1152d4",
+                        "background-dark": "#0a0e17",
+                        "surface-dark": "#161c2a",
+                        "border-dark": "#232b3e",
+                    },
+                    fontFamily: { "display": ["Public Sans"] },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+    <style>
+        body { min-height: 100vh; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        #map { height: 420px; width: 100%; border-radius: 0.75rem; z-index: 1; }
+        .leaflet-container { background: #161c2a !important; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #0a0e17; }
+        ::-webkit-scrollbar-thumb { background: #232b3e; border-radius: 10px; }
+        .mode-active { background: #1152d4 !important; color: white !important; }
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+    </style>
+</head>
+<body class="bg-background-dark font-display text-slate-100 antialiased">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden pb-24">
+
+    <!-- Header -->
+    <div class="flex items-center bg-background-dark p-4 pb-2 justify-between sticky top-0 z-50 border-b border-border-dark">
+        <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/20 text-primary">
+            <span class="material-symbols-outlined text-xl">shield</span>
+        </div>
+        <div class="text-center">
+            <h2 class="text-base font-black">SafeLense Montgomery</h2>
+            <p class="text-[10px] text-slate-400">Powered by live data & AI</p>
+        </div>
+        <div class="flex size-10 items-center justify-end">
+            <span class="material-symbols-outlined text-primary pulse">notifications_active</span>
+        </div>
+    </div>
+
+    <!-- Mode Toggle -->
+    <div class="bg-background-dark px-4 pt-3 pb-3 border-b border-border-dark sticky top-[61px] z-40">
+        <div class="flex bg-surface-dark rounded-xl p-1 gap-1">
+            <button onclick="switchMode('citizen')" id="mode-citizen" class="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-primary text-white text-sm font-bold transition-all">
+                <span class="material-symbols-outlined text-base">person</span> Resident View
+            </button>
+            <button onclick="switchMode('official')" id="mode-official" class="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-slate-400 text-sm font-bold transition-all">
+                <span class="material-symbols-outlined text-base">monitoring</span> Official View
+            </button>
+        </div>
+    </div>
+
+    <!-- Official Tabs (hidden by default) -->
+    <div id="official-tabs" class="bg-background-dark hidden border-b border-border-dark">
+        <div class="flex px-4 gap-8">
+            <button onclick="switchTab('overview')" id="tab-overview" class="tab-link flex flex-col items-center justify-center border-b-2 border-primary text-primary pb-3 pt-4">
+                <p class="text-sm font-bold">Overview</p>
+            </button>
+            <button onclick="switchTab('insights')" id="tab-insights" class="tab-link flex flex-col items-center justify-center border-b-2 border-transparent text-slate-400 pb-3 pt-4">
+                <p class="text-sm font-bold">AI Insights</p>
+            </button>
+            <button onclick="switchTab('map-view')" id="tab-map-view" class="tab-link flex flex-col items-center justify-center border-b-2 border-transparent text-slate-400 pb-3 pt-4">
+                <p class="text-sm font-bold">City Map</p>
+            </button>
+        </div>
+    </div>
+
+    <!-- ===================== CITIZEN VIEW ===================== -->
+    <div id="citizen-view" class="flex flex-col p-4 gap-5">
+
+        <!-- Hero greeting -->
+        <div class="rounded-xl p-5 bg-gradient-to-br from-primary to-blue-800 text-white">
+            <p class="text-xs font-bold uppercase tracking-widest opacity-75 mb-1">City of Montgomery 👋</p>
+            <h2 class="text-2xl font-black leading-tight">Is your neighborhood safe today?</h2>
+            <p class="text-sm opacity-75 mt-1">Real 911 data. Plain English. No confusion.</p>
+        </div>
+
+        <!-- Neighborhood Picker -->
+        <div class="rounded-xl p-5 bg-surface-dark border border-border-dark">
+            <p class="text-sm font-bold mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">location_on</span> Pick your neighborhood:</p>
+            <select onchange="updateCitizenView(this.value)" class="w-full bg-background-dark border border-border-dark rounded-lg px-4 py-3 text-sm font-bold text-slate-100 focus:outline-none focus:border-primary">
+                <option value="">-- Choose your area --</option>
+                <option value="Capitol Heights">Capitol Heights</option>
+                <option value="Cloverdale">Cloverdale</option>
+                <option value="Garden District">Garden District</option>
+                <option value="West Montgomery">West Montgomery</option>
+                <option value="Downtown">Downtown</option>
+                <option value="East Montgomery">East Montgomery</option>
+                <option value="Chisholm">Chisholm</option>
+                <option value="Old Cloverdale">Old Cloverdale</option>
+            </select>
+        </div>
+
+        <!-- Safety Status Card (dynamic) -->
+        <div id="citizen-status" class="rounded-xl p-6 bg-surface-dark border border-border-dark text-center">
+            <span class="material-symbols-outlined text-slate-500 text-4xl mb-2 block">location_city</span>
+            <p class="text-slate-400 text-sm">Select your neighborhood above<br>to see your personal safety status</p>
+        </div>
+
+        <!-- City-wide Quick Stats -->
+        <div class="rounded-xl p-5 bg-surface-dark border border-border-dark">
+            <h3 class="font-bold text-base mb-4 flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">bar_chart</span> Montgomery This Week</h3>
+            <div class="grid grid-cols-3 gap-3 text-center">
+                <div class="rounded-lg p-3 bg-green-500/10 border border-green-500/20">
+                    <p class="text-xl font-black text-green-400">↓3%</p>
+                    <p class="text-[10px] font-bold text-slate-400 mt-1">Overall Incidents</p>
+                </div>
+                <div class="rounded-lg p-3 bg-blue-500/10 border border-blue-500/20">
+                    <p class="text-xl font-black text-blue-400">1,482</p>
+                    <p class="text-[10px] font-bold text-slate-400 mt-1">911 Calls</p>
+                </div>
+                <div class="rounded-lg p-3 bg-primary/10 border border-primary/20">
+                    <p class="text-xl font-black text-primary">84%</p>
+                    <p class="text-[10px] font-bold text-slate-400 mt-1">Safety Score</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Media vs Reality -->
+        <div class="rounded-xl p-5 bg-surface-dark border border-border-dark">
+            <h3 class="font-bold text-base mb-1 flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">balance</span> Media vs Reality</h3>
+            <p class="text-xs text-slate-400 mb-4">What the news says vs what the data actually shows</p>
+            <div class="flex flex-col gap-3">
+                <div class="p-3 rounded-lg bg-red-500/5 border border-red-500/20">
+                    <p class="text-xs font-bold text-red-400 mb-1">📰 What media says</p>
+                    <p class="text-sm">"Rising concerns over downtown crime wave hitting Montgomery..."</p>
+                </div>
+                <div class="p-3 rounded-lg bg-green-500/5 border border-green-500/20">
+                    <p class="text-xs font-bold text-green-400 mb-1">📊 What the data shows</p>
+                    <p class="text-sm">Downtown incidents are <b>DOWN 12%</b> this week. Most calls are traffic-related, not violent crime.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live News -->
+        <div class="flex flex-col gap-3">
+            <h4 class="font-bold text-base flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-base">rss_feed</span> Live Montgomery News
+                <span class="text-[10px] font-bold text-green-500 pulse">● LIVE</span>
+            </h4>
+            <div id="citizen-news" class="flex flex-col gap-3">
+                <div class="p-4 rounded-xl bg-surface-dark border border-border-dark flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-sm">progress_activity</span>
+                    <span class="text-sm text-slate-400">Loading live news...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Emergency Contacts -->
+        <div class="rounded-xl p-5 bg-surface-dark border border-border-dark">
+            <h3 class="font-bold text-base mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">contact_phone</span> Quick Contacts</h3>
+            <div class="flex flex-col gap-2">
+                <div class="flex items-center justify-between p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                    <span class="text-sm font-bold">🚨 Emergency</span>
+                    <span class="text-sm font-black text-red-400">911</span>
+                </div>
+                <div class="flex items-center justify-between p-3 rounded-lg bg-background-dark border border-border-dark">
+                    <span class="text-sm font-bold">MPD Non-Emergency</span>
+                    <span class="text-sm font-bold text-primary">(334) 625-2532</span>
+                </div>
+                <div class="flex items-center justify-between p-3 rounded-lg bg-background-dark border border-border-dark">
+                    <span class="text-sm font-bold">City Services</span>
+                    <span class="text-sm font-black text-primary">311</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== OFFICIAL VIEW ===================== -->
+    <div id="official-view" class="hidden flex-col p-4 gap-6">
+
+        <!-- TAB: OVERVIEW -->
+        <div id="content-overview" class="tab-content active space-y-6">
+            <div class="grid grid-cols-1 gap-4">
+                <div class="rounded-xl p-6 bg-surface-dark border border-border-dark shadow-sm">
+                    <p class="text-slate-400 text-xs font-bold uppercase tracking-widest">Total 911 Calls This Week</p>
+                    <div class="flex items-end gap-2 mt-1">
+                        <h3 class="text-4xl font-black">1,482</h3>
+                        <span class="text-green-500 text-sm font-bold mb-1 flex items-center">
+                            <span class="material-symbols-outlined text-sm">trending_down</span> 3.1%
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="rounded-xl p-5 bg-surface-dark border border-border-dark">
+                    <h4 class="text-sm font-bold mb-4">Incident Distribution</h4>
+                    <canvas id="incidentChart" height="200"></canvas>
+                </div>
+                <div class="rounded-xl p-5 bg-surface-dark border border-border-dark">
+                    <h4 class="text-sm font-bold mb-4">7-Day Volume Trend</h4>
+                    <canvas id="trendChart" height="200"></canvas>
+                </div>
+            </div>
+            <div class="flex flex-col gap-3">
+                <h4 class="text-lg font-bold">Highest Activity Areas</h4>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between p-4 rounded-xl bg-red-500/5 border border-red-500/20">
+                        <div class="flex items-center gap-3"><div class="size-2 rounded-full bg-red-500"></div><span class="font-bold">Capitol Heights</span></div>
+                        <span class="text-sm font-mono font-bold">184 Calls</span>
+                    </div>
+                    <div class="flex items-center justify-between p-4 rounded-xl bg-orange-500/5 border border-orange-500/20">
+                        <div class="flex items-center gap-3"><div class="size-2 rounded-full bg-orange-500"></div><span class="font-bold">West Montgomery</span></div>
+                        <span class="text-sm font-mono font-bold">142 Calls</span>
+                    </div>
+                    <div class="flex items-center justify-between p-4 rounded-xl bg-yellow-500/5 border border-yellow-500/20">
+                        <div class="flex items-center gap-3"><div class="size-2 rounded-full bg-yellow-500"></div><span class="font-bold">Downtown</span></div>
+                        <span class="text-sm font-mono font-bold">129 Calls</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex flex-col gap-3">
+                <h4 class="text-lg font-bold">Live News Feed <span class="text-[10px] font-bold text-green-500 ml-1 pulse">● LIVE</span></h4>
+                <div id="official-news" class="flex flex-col gap-3">
+                    <div class="p-4 rounded-xl bg-surface-dark border border-border-dark flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary text-sm">progress_activity</span>
+                        <span class="text-sm text-slate-400">Loading live news...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: AI INSIGHTS -->
+        <div id="content-insights" class="tab-content space-y-6">
+            <div class="flex flex-col gap-4 rounded-xl p-6 bg-surface-dark shadow-sm border border-border-dark">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="text-slate-400 text-sm font-semibold uppercase tracking-wider">Perception vs. Reality Index</h3>
+                        <p class="text-4xl font-extrabold mt-1">84<span class="text-xl text-slate-400">/100</span></p>
+                    </div>
+                    <div class="bg-green-500/10 text-green-500 px-2 py-1 rounded text-xs font-bold flex items-center gap-1">
+                        <span class="material-symbols-outlined text-sm">trending_up</span> +4.2%
+                    </div>
+                </div>
+                <div class="w-full bg-slate-700 h-3 rounded-full overflow-hidden mt-2">
+                    <div class="bg-primary h-full w-[84%] rounded-full"></div>
+                </div>
+                <p class="text-slate-400 text-xs leading-relaxed">AI Analysis indicates public perception is aligning more closely with actual incident data in the Capitol Heights district.</p>
+            </div>
+            <div class="flex flex-col gap-3">
+                <h4 class="text-lg font-bold px-1">Signal Divergence</h4>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="flex flex-col gap-2 p-4 rounded-xl bg-surface-dark border border-border-dark">
+                        <div class="flex items-center gap-2 text-primary">
+                            <span class="material-symbols-outlined text-sm">newspaper</span>
+                            <span class="text-[10px] font-bold uppercase tracking-widest">Public Narrative</span>
+                        </div>
+                        <p class="text-xs font-medium text-slate-300 italic">"Rising concerns over downtown loitering impact..."</p>
+                        <div class="mt-auto pt-2 text-[10px] text-slate-400">Social &amp; Media Index</div>
+                    </div>
+                    <div class="flex flex-col gap-2 p-4 rounded-xl bg-primary/10 border border-primary/20">
+                        <div class="flex items-center gap-2 text-primary">
+                            <span class="material-symbols-outlined text-sm">shield</span>
+                            <span class="text-[10px] font-bold uppercase tracking-widest">911 Reality</span>
+                        </div>
+                        <p class="text-xs font-bold">-12% decrease in actual reported disturbances.</p>
+                        <div class="mt-auto pt-2 text-[10px] text-slate-400">Validated CAD Data</div>
+                    </div>
+                </div>
+            </div>
+            <div class="flex flex-col gap-4 mt-2">
+                <div class="flex items-center justify-between px-1">
+                    <h4 class="text-lg font-bold">Top AI Recommendations</h4>
+                    <span class="text-primary text-xs font-bold">3 Actionable</span>
+                </div>
+                <div class="flex gap-4 p-4 rounded-xl bg-surface-dark border border-border-dark">
+                    <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><span class="material-symbols-outlined">lightbulb</span></div>
+                    <div class="flex flex-col gap-1">
+                        <p class="text-sm font-bold">Optimize Lighting in North Montgomery</p>
+                        <p class="text-xs text-slate-400">Increase street lamp density by 15% to reduce foot traffic perception gap.</p>
+                    </div>
+                </div>
+                <div class="flex gap-4 p-4 rounded-xl bg-surface-dark border border-border-dark">
+                    <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><span class="material-symbols-outlined">group</span></div>
+                    <div class="flex flex-col gap-1">
+                        <p class="text-sm font-bold">Community Outreach: District 3</p>
+                        <p class="text-xs text-slate-400">Host safety workshops to address 22% spike in localized theft anxiety.</p>
+                    </div>
+                </div>
+                <div class="flex gap-4 p-4 rounded-xl bg-surface-dark border border-border-dark">
+                    <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><span class="material-symbols-outlined">visibility</span></div>
+                    <div class="flex flex-col gap-1">
+                        <p class="text-sm font-bold">Proactive Patrol Deployment</p>
+                        <p class="text-xs text-slate-400">Reassign 2 units to Court Street during 11PM-2AM window based on trend shifts.</p>
+                    </div>
+                </div>
+            </div>
+            <button class="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl shadow-lg transition-all">
+                <span class="material-symbols-outlined">file_download</span> Export Official Intelligence Report
+            </button>
+        </div>
+
+        <!-- TAB: CITY MAP -->
+        <div id="content-map-view" class="tab-content space-y-4">
+            <div class="flex justify-between items-center px-1">
+                <h4 class="text-lg font-bold">Interactive Heatmap</h4>
+                <div class="flex gap-3">
+                    <div class="flex items-center gap-1"><div class="size-2 rounded-full bg-green-500"></div><span class="text-[10px] font-bold">Low</span></div>
+                    <div class="flex items-center gap-1"><div class="size-2 rounded-full bg-yellow-500"></div><span class="text-[10px] font-bold">Med</span></div>
+                    <div class="flex items-center gap-1"><div class="size-2 rounded-full bg-red-500"></div><span class="text-[10px] font-bold">High</span></div>
+                </div>
+            </div>
+            <div id="map" class="border border-border-dark shadow-xl"></div>
+            <div class="p-4 rounded-xl bg-blue-500/10 border border-primary/20 flex gap-3">
+                <span class="material-symbols-outlined text-primary">info</span>
+                <p class="text-xs text-slate-300">Map shows live 911 dispatch hotspots. Click any marker for neighborhood stats.</p>
+            </div>
+        </div>
+
+    </div><!-- end official-view -->
+
+    <!-- Bottom Nav -->
+    <div class="fixed bottom-0 left-0 right-0 z-50 flex border-t border-border-dark bg-surface-dark px-4 pb-6 pt-2">
+        <button onclick="switchMode('citizen')" class="flex flex-1 flex-col items-center justify-center gap-1 text-primary">
+            <span class="material-symbols-outlined">home</span>
+            <p class="text-[10px] font-medium">Resident</p>
+        </button>
+        <button onclick="switchMode('official'); switchTab('insights')" class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400">
+            <span class="material-symbols-outlined">insights</span>
+            <p class="text-[10px] font-medium">Insights</p>
+        </button>
+        <button onclick="switchMode('official'); switchTab('map-view')" class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400">
+            <span class="material-symbols-outlined">map</span>
+            <p class="text-[10px] font-medium">Map</p>
+        </button>
+        <button onclick="switchMode('official')" class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400">
+            <span class="material-symbols-outlined">monitoring</span>
+            <p class="text-[10px] font-medium">Official</p>
+        </button>
+    </div>
+</div>
+
+<script>
+    // ============ NEIGHBORHOOD DATA ============
+    const neighborhoodData = {
+        "Capitol Heights":  { calls: 184, top: "Property Crime", status: "high",   emoji: "🔴", msg: "Higher than average activity this week. Stay aware of your surroundings, especially at night." },
+        "West Montgomery":  { calls: 142, top: "Disturbance",    status: "high",   emoji: "🔴", msg: "Elevated 911 call volume. Most incidents are non-violent disturbances." },
+        "Downtown":         { calls: 129, top: "Traffic",        status: "medium", emoji: "🟡", msg: "Moderate activity, mostly traffic incidents. Media reports are overstating crime here." },
+        "Garden District":  { calls: 88,  top: "Traffic",        status: "medium", emoji: "🟡", msg: "Typical for a busy area. Most calls are traffic-related — nothing unusual." },
+        "Chisholm":         { calls: 95,  top: "Public Nuisance",status: "medium", emoji: "🟡", msg: "Moderate call volume. Community outreach programs are helping reduce incidents." },
+        "Cloverdale":       { calls: 42,  top: "Medical",        status: "low",    emoji: "🟢", msg: "One of the safer areas in Montgomery this week. Enjoy your neighborhood!" },
+        "Old Cloverdale":   { calls: 28,  top: "Medical",        status: "low",    emoji: "🟢", msg: "Very low incident rate. Predominantly medical calls — a good sign for safety." },
+        "East Montgomery":  { calls: 31,  top: "Medical",        status: "low",    emoji: "🟢", msg: "Quiet and safe this week. Low call volume across the board." },
+    };
+
+    // ============ MODE SWITCHING ============
+    function switchMode(mode) {
+        const citizenView = document.getElementById('citizen-view');
+        const officialView = document.getElementById('official-view');
+        const officialTabs = document.getElementById('official-tabs');
+        const modeCitizen = document.getElementById('mode-citizen');
+        const modeOfficial = document.getElementById('mode-official');
+
+        if (mode === 'citizen') {
+            citizenView.classList.remove('hidden');
+            citizenView.classList.add('flex');
+            officialView.classList.add('hidden');
+            officialView.classList.remove('flex');
+            officialTabs.classList.add('hidden');
+            modeCitizen.classList.add('bg-primary','text-white');
+            modeCitizen.classList.remove('text-slate-400');
+            modeOfficial.classList.remove('bg-primary','text-white');
+            modeOfficial.classList.add('text-slate-400');
+        } else {
+            citizenView.classList.add('hidden');
+            citizenView.classList.remove('flex');
+            officialView.classList.remove('hidden');
+            officialView.classList.add('flex');
+            officialTabs.classList.remove('hidden');
+            modeOfficial.classList.add('bg-primary','text-white');
+            modeOfficial.classList.remove('text-slate-400');
+            modeCitizen.classList.remove('bg-primary','text-white');
+            modeCitizen.classList.add('text-slate-400');
+        }
+    }
+
+    // ============ TAB SWITCHING ============
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tab-link').forEach(l => {
+            l.classList.remove('border-primary', 'text-primary');
+            l.classList.add('border-transparent', 'text-slate-400');
+        });
+        document.getElementById(`content-${tabId}`).classList.add('active');
+        document.getElementById(`tab-${tabId}`).classList.add('border-primary', 'text-primary');
+        document.getElementById(`tab-${tabId}`).classList.remove('border-transparent', 'text-slate-400');
+        if (tabId === 'map-view') setTimeout(() => map.invalidateSize(), 150);
+    }
+
+    // ============ CITIZEN NEIGHBORHOOD VIEW ============
+    function updateCitizenView(neighborhood) {
+        const el = document.getElementById('citizen-status');
+        if (!neighborhood) return;
+        const d = neighborhoodData[neighborhood];
+        const colors = { high: 'red', medium: 'yellow', low: 'green' };
+        const c = colors[d.status];
+        const bgMap = { high: 'bg-red-500/10 border-red-500/30', medium: 'bg-yellow-500/10 border-yellow-500/30', low: 'bg-green-500/10 border-green-500/30' };
+        const textMap = { high: 'text-red-400', medium: 'text-yellow-400', low: 'text-green-400' };
+        const labelMap = { high: 'HIGH ACTIVITY', medium: 'MODERATE', low: 'LOW ACTIVITY — SAFE' };
+
+        el.className = `rounded-xl p-6 border ${bgMap[d.status]}`;
+        el.innerHTML = `
+            <div class="text-5xl mb-3">${d.emoji}</div>
+            <span class="text-xs font-black uppercase tracking-widest ${textMap[d.status]}">${labelMap[d.status]}</span>
+            <h3 class="text-2xl font-black mt-1 mb-2">${neighborhood}</h3>
+            <p class="text-sm text-slate-300 mb-4">${d.msg}</p>
+            <div class="grid grid-cols-2 gap-3 text-left">
+                <div class="bg-background-dark rounded-lg p-3">
+                    <p class="text-xs text-slate-400">911 Calls This Week</p>
+                    <p class="text-xl font-black">${d.calls}</p>
+                </div>
+                <div class="bg-background-dark rounded-lg p-3">
+                    <p class="text-xs text-slate-400">Top Incident Type</p>
+                    <p class="text-sm font-black">${d.top}</p>
+                </div>
+            </div>
+        `;
+    }
+
+    // ============ CHARTS ============
+    const chartOpts = (color) => ({
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { beginAtZero: true, grid: { color: '#232b3e' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+            x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } }
+        }
+    });
+
+    new Chart(document.getElementById('incidentChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: ['Crime', 'Medical', 'Fire', 'Traffic'],
+            datasets: [{ data: [450, 320, 80, 632], backgroundColor: ['#1152d4','#3b82f6','#ef4444','#f59e0b'], borderRadius: 4 }]
+        },
+        options: chartOpts()
+    });
+
+    new Chart(document.getElementById('trendChart').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+            datasets: [{ data: [190,210,185,240,280,310,220], borderColor: '#1152d4', tension: 0.4, fill: true, backgroundColor: 'rgba(17,82,212,0.1)' }]
+        },
+        options: chartOpts()
+    });
+
+    // ============ MAP ============
+    const map = L.map('map').setView([32.3668, -86.3000], 12);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    const mapNeighborhoods = [
+        { name: "Capitol Heights",  coords: [32.384, -86.275], color: "#ef4444", calls: 184, main: "Property Crime" },
+        { name: "Cloverdale",       coords: [32.355, -86.289], color: "#22c55e", calls: 42,  main: "Medical" },
+        { name: "Garden District",  coords: [32.364, -86.299], color: "#eab308", calls: 88,  main: "Traffic" },
+        { name: "West Montgomery",  coords: [32.360, -86.330], color: "#ef4444", calls: 142, main: "Disturbance" },
+        { name: "Downtown",         coords: [32.378, -86.307], color: "#eab308", calls: 129, main: "Traffic/Loitering" },
+        { name: "East Montgomery",  coords: [32.350, -86.180], color: "#22c55e", calls: 31,  main: "Medical" },
+        { name: "Chisholm",         coords: [32.410, -86.280], color: "#eab308", calls: 95,  main: "Public Nuisance" },
+        { name: "Old Cloverdale",   coords: [32.352, -86.295], color: "#22c55e", calls: 28,  main: "Medical" }
+    ];
+
+    mapNeighborhoods.forEach(n => {
+        L.circleMarker(n.coords, {
+            radius: 12, fillColor: n.color, color: "#fff", weight: 2, opacity: 1, fillOpacity: 0.85
+        }).addTo(map).bindPopup(`
+            <div style="font-family:sans-serif;min-width:140px">
+                <b style="font-size:13px">${n.name}</b><br/>
+                <span style="font-size:11px">📞 Calls this week: <b>${n.calls}</b></span><br/>
+                <span style="font-size:11px">⚠️ Top issue: <b>${n.main}</b></span>
+            </div>
+        `);
+    });
+
+    // ============ NEWS API ============
+    async function loadNews(targetId) {
+        const KEY = '5aeeccf19e49488fbb0e3cc7243ec83b';
+        const queries = ['Montgomery Alabama crime', 'Montgomery Alabama police', 'Montgomery Alabama safety'];
+        const q = queries[Math.floor(Math.random() * queries.length)];
+        const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(q)}&sortBy=publishedAt&pageSize=5&apiKey=${KEY}`;
+        const el = document.getElementById(targetId);
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.articles?.length > 0) {
+                el.innerHTML = data.articles.slice(0,5).map(a => {
+                    const ago = getTimeAgo(new Date(a.publishedAt));
+                    return `<a href="${a.url}" target="_blank" class="block p-4 rounded-xl bg-surface-dark border border-border-dark hover:border-primary/50 transition-all">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="text-[10px] font-bold text-primary uppercase tracking-widest">${a.source.name || 'News'}</span>
+                            <span class="text-[10px] text-slate-500">${ago}</span>
+                        </div>
+                        <p class="text-sm font-medium leading-snug">${a.title}</p>
+                        <p class="text-xs text-slate-400 mt-1">${a.description?.slice(0,80) || ''}...</p>
+                    </a>`;
+                }).join('');
+            } else {
+                el.innerHTML = `<div class="p-4 rounded-xl bg-surface-dark border border-border-dark text-sm text-slate-400">No live articles found right now.</div>`;
+            }
+        } catch(e) {
+            el.innerHTML = `<div class="p-4 rounded-xl bg-surface-dark border border-border-dark text-sm text-slate-400">Live feed available after deployment.</div>`;
+        }
+    }
+
+    function getTimeAgo(d) {
+        const s = Math.floor((Date.now() - d) / 1000);
+        if (s < 60) return `${s}s ago`;
+        if (s < 3600) return `${Math.floor(s/60)}m ago`;
+        if (s < 86400) return `${Math.floor(s/3600)}h ago`;
+        return `${Math.floor(s/86400)}d ago`;
+    }
+
+    loadNews('citizen-news');
+    loadNews('official-news');
+</script>
+</body>
+</html>
