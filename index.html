@@ -700,7 +700,7 @@ body { font-family: 'Inter', sans-serif; background: #f6f6f8; color: #0f172a; }
 // ================================================================
 // STATE & CONFIG
 // ================================================================
-const GEMINI_KEY = 'AIzaSyCfX2ZBMG9o28tpkwLFEiySxD9qYLpGOVs';
+const GEMINI_KEY = 'AIzaSyCtwg5tVIZZKqQeacOHD5E44a9JunVnk5k';
 let persona = 'resident';
 let neighborhood = 'All Montgomery';
 let neighborhoodColor = 'blue';
@@ -996,7 +996,7 @@ async function sendMessage() {
 
     let reply = null;
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_KEY}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
