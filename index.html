@@ -709,58 +709,22 @@ let neighborhoodIssue = '';
 let chatHistory = [];
 let chatStarted = false;
 
-const CITY_DATA = `You are Ask Montgomery — the official AI city assistant for Montgomery, Alabama. You are friendly, concise, and helpful. Answer questions using ONLY the real data below. Keep responses brief and clear. Use bullet points for lists.
+const CITY_DATA = `You are Ask Montgomery — the official AI assistant for Montgomery, Alabama ONLY. Be friendly, concise, use bullet points. Max 5 bullets per response. Use ONLY the data below. If asked about anything outside Montgomery (other cities, countries, general knowledge, writing help, weather, politics), say: "I'm focused on Montgomery, AL only! I can help with safety, jobs, housing, or city services here."
 
-REAL DATA SCRAPED BY BRIGHT DATA:
+SAFETY (March 2026): Crime DOWN 15%, violent crime DOWN 25% in 2025. Safety Score 84/100. 1,482 weekly 911 calls. New Fire Chief Russell G. Collier (Mar 4, 2026). Aniah's Law expanded.
 
-SAFETY (Montgomery Open Data + Mayor Jan 2026 report):
-- Crime DOWN 15% overall in 2025, violent crime DOWN 25%
-- 61 homicides in 2025, 2,100+ firearms seized
-- City Safety Score: 84/100 (up 5%)
-- New Fire Chief Russell G. Collier appointed March 4, 2026
-- Aniah's Law expanded — violent offenders held longer
-- 911 this week: 1,482 calls total, DOWN 2%
+NEIGHBORHOOD 911 CALLS: Old Cloverdale 28 (safe), Cloverdale 42 (safe), East Montgomery 31 (safe), Downtown 129 (moderate), Garden District 88 (moderate), Chisholm 95 (moderate), West Montgomery 142 (high), Capitol Heights 184 (high).
 
-NEIGHBORHOOD SAFETY (weekly 911 calls):
-- 🟢 Old Cloverdale: 28 calls — very safe (mostly medical)
-- 🟢 Cloverdale: 42 calls — safe (mostly medical)  
-- 🟢 East Montgomery: 31 calls — safe (mostly medical)
-- 🟡 Downtown: 129 calls — moderate (traffic/loitering)
-- 🟡 Garden District: 88 calls — moderate (traffic)
-- 🟡 Chisholm: 95 calls — moderate (public nuisance)
-- 🔴 West Montgomery: 142 calls — high (disturbance)
-- 🔴 Capitol Heights: 184 calls — high (property crime)
+CONTACTS: Emergency 911 | MPD Non-Emergency (334) 625-2532 | Fire Non-Emergency (334) 625-2550 | City Services/Street Lights/Sanitation 311 | City Hall (334) 625-4636.
 
-Emergency contacts: 911 (emergency) | (334) 625-2532 (MPD non-emergency) | 311 (city services)
+JOBS (Indeed via Bright Data, March 2026): Walmart Stocker $14-$27/hr | International Paper $23-$36/hr | Coca-Cola Warehouse competitive | Aldi Manager Trainee $27+/hr | Schmidt Environmental PM $52k-$90k/yr. Top sectors: Manufacturing, Warehousing, Logistics.
 
-JOBS (scraped from Indeed via Bright Data, March 2026):
-1. Stocker — Walmart | $14–$27/hr | Part-time overnight
-2. Production Associate — International Paper | $23.49–$36/hr | Full-time
-3. Warehouse Utility — Coca-Cola Bottling UNITED | Competitive | Mon–Fri
-4. Store Manager Trainee — Aldi | From $27.25/hr | Full-time
-5. Asst. Project Manager — Schmidt Environmental | $52k–$90k/yr
-Top industries: Manufacturing, Warehousing, Skilled Trades, Logistics
-Top employers: Walmart, International Paper, Coca-Cola, Aldi, Hyundai Mobis, MTW Aerospace
+NEWS: Mayor appoints Fire Chief Collier Mar 4, 2026 | Montgomery top Alabama economic performer Feb 26 | DAS North America $77.6M expansion 100 jobs Feb 26.
 
-CITY NEWS (scraped from montgomeryal.gov via Bright Data):
-- "Mayor Reed Appoints Russell G. Collier as Fire Chief" — March 4, 2026
-- "Montgomery County Rises as Alabama Economic Powerhouse" — Feb 26, 2026  
-- "DAS North America: $77.6M Expansion, 100 New Jobs" — Feb 26, 2026
+VACANT PROPERTIES: Lots 0.43-270 acres, $5k-$800k+ citywide.
 
-VACANT PROPERTIES (scraped from Zillow via Bright Data):
-- Lots from 0.43 to 270 acres available citywide
-- Prices: $5,000 (small residential) to $800,000+ (large commercial parcels)
-- Active listings in multiple neighborhoods
+DEPARTMENTS: Police, Fire/Rescue, 911, Neighborhood Services, Parks, Planning, Sanitation, Library, Courts, Economic Development.`;
 
-CITY SERVICES (scraped from montgomeryal.gov via Bright Data):
-Address: 103 North Perry St, Montgomery, AL 36104 | Phone: 334-625-4636
-Departments: Emergency Communications 911, Fire/Rescue, Police, Neighborhood Services, Office of Violence Prevention, Parks & Recreation, Planning, Sanitation, Library, Municipal Court, Human Resources, Economic & Community Development
-
-ECONOMIC GROWTH:
-- Montgomery County top economic performer in Alabama 2025
-- DAS North America: $77.6M investment, 100 new jobs coming
-- Strong manufacturing and logistics sector growth
-- High rankings in job creation and capital investment statewide`;
 
 // ================================================================
 // NAVIGATION
@@ -979,7 +943,7 @@ async function sendMessage() {
       model: 'llama-3.3-70b-versatile',
       messages: [
         { role: 'system', content: CITY_DATA + '\n\nUser persona: ' + persona + '. User neighborhood: ' + neighborhood + '. Prioritise data about their neighborhood when relevant. Be concise and helpful.' },
-        ...chatHistory.slice(-6).map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }))
+        ...chatHistory.slice(-4).map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }))
       ],
       max_tokens: 400,
       temperature: 0.7
