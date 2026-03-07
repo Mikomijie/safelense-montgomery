@@ -975,8 +975,8 @@ async function sendMessage() {
       { role: 'user', parts: [{ text: text }] }
     ];
 
-    // Try gemini-1.5-flash first, fallback to gemini-pro
-    const models = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-pro'];
+    // Try models in order
+    const models = ['gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-1.0-pro'];
     let reply = null;
 
     for (const model of models) {
@@ -986,18 +986,20 @@ async function sendMessage() {
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              contents: messages, 
-              generationConfig: { temperature: 0.7, maxOutputTokens: 500 } 
+            body: JSON.stringify({
+              contents: messages,
+              generationConfig: { temperature: 0.7, maxOutputTokens: 500 }
             })
           }
         );
         const data = await res.json();
+        console.log('Model:', model, 'Response:', JSON.stringify(data).substring(0, 200));
         if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
           reply = data.candidates[0].content.parts[0].text;
           break;
         }
-      } catch(modelErr) {
+      } catch(e) {
+        console.log('Model failed:', model, e.message);
         continue;
       }
     }
@@ -1008,7 +1010,7 @@ async function sendMessage() {
       chatHistory.push({ role: 'assistant', content: reply });
       addAIBubble(reply);
     } else {
-      addAIBubble('⚠️ Could not connect to Gemini AI. Make sure you\'re viewing this on a web server (not file://) or deploy to Vercel. The app and all data still works perfectly!');
+      addAIBubble('⚠️ Gemini API issue. Please check the browser console (F12) for error details.');
     }
   } catch (e) {
     removeTyping();
