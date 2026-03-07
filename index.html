@@ -104,7 +104,7 @@ body { font-family: 'Inter', sans-serif; background: #f6f6f8; color: #0f172a; }
       <span style="font-size:10px;color:#cbd5e1;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;">Powered by</span>
       <span style="font-size:10px;color:#f59e0b;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;">Bright Data</span>
       <span style="color:#e2e8f0;font-size:10px;">+</span>
-      <span style="font-size:10px;color:#1152d4;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;">Gemini AI</span>
+      <span style="font-size:10px;color:#1152d4;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;">Groq AI</span>
     </div>
   </div>
 </div>
@@ -125,7 +125,7 @@ body { font-family: 'Inter', sans-serif; background: #f6f6f8; color: #0f172a; }
   const steps = [
     [20, 'Loading city safety data...'],
     [45, 'Fetching Bright Data intelligence...'],
-    [70, 'Connecting to Gemini AI...'],
+    [70, 'Connecting to Groq AI...'],
     [90, 'Preparing your dashboard...'],
     [100, 'Welcome to Montgomery! ✅']
   ];
@@ -168,7 +168,7 @@ body { font-family: 'Inter', sans-serif; background: #f6f6f8; color: #0f172a; }
   <!-- Hero -->
   <section class="px-6 pt-16 pb-12 max-w-lg mx-auto text-center">
     <div class="fade-up inline-flex items-center gap-2 bg-primary/10 text-primary text-xs font-bold px-4 py-2 rounded-full mb-8">
-      <span>🌟</span> Powered by Bright Data + Gemini AI
+      <span>🌟</span> Powered by Bright Data + Groq AI
     </div>
     <h1 class="fade-up delay-1 text-4xl font-black tracking-tight text-slate-900 leading-tight mb-6">
       Montgomery's city intelligence is now at your fingertips.
@@ -203,7 +203,7 @@ body { font-family: 'Inter', sans-serif; background: #f6f6f8; color: #0f172a; }
         <!-- Overlay badge -->
         <div class="absolute bottom-3 left-3 bg-white/90 backdrop-blur rounded-lg px-3 py-2 flex items-center gap-2 shadow">
           <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-          <span class="text-xs font-bold text-slate-700">Live City Data Active</span>
+          <span class="text-xs font-bold text-slate-700">Mar 2026 Data · Bright Data</span>
         </div>
       </div>
     </div>
@@ -234,7 +234,7 @@ body { font-family: 'Inter', sans-serif; background: #f6f6f8; color: #0f172a; }
   <!-- Features section -->
   <div id="features" class="px-6 py-16 max-w-lg mx-auto">
     <h2 class="text-2xl font-black text-slate-900 text-center mb-2">Comprehensive Urban Data</h2>
-    <p class="text-slate-500 text-center text-sm mb-10">Everything you need to know about Montgomery, updated in real-time.</p>
+    <p class="text-slate-500 text-center text-sm mb-10">Everything you need to know about Montgomery, sourced via Bright Data scraping.</p>
     <div class="space-y-4">
       <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
         <span class="material-symbols-outlined text-primary text-3xl mb-3 block">security</span>
@@ -254,7 +254,7 @@ body { font-family: 'Inter', sans-serif; background: #f6f6f8; color: #0f172a; }
       <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
         <span class="material-symbols-outlined text-purple-500 text-3xl mb-3 block">smart_toy</span>
         <h3 class="font-bold text-slate-900 text-lg mb-2">AI City Assistant</h3>
-        <p class="text-slate-500 text-sm leading-relaxed">Ask anything in plain English. Gemini AI answers using real Bright Data scraped city intelligence.</p>
+        <p class="text-slate-500 text-sm leading-relaxed">Ask anything in plain English. Groq AI answers using real Bright Data scraped city intelligence.</p>
       </div>
     </div>
   </div>
@@ -278,7 +278,7 @@ body { font-family: 'Inter', sans-serif; background: #f6f6f8; color: #0f172a; }
       </div>
       <span class="font-bold text-slate-900">Ask Montgomery</span>
     </div>
-    <p class="text-xs text-slate-400">© 2026 Ask Montgomery. Powered by Bright Data + Gemini AI.</p>
+    <p class="text-xs text-slate-400">© 2026 Ask Montgomery. Powered by Bright Data + Groq AI.</p>
   </footer>
 </div>
 
@@ -509,7 +509,7 @@ body { font-family: 'Inter', sans-serif; background: #f6f6f8; color: #0f172a; }
       <div class="flex items-center justify-between mb-3">
         <h3 class="font-black text-lg text-slate-900">Montgomery This Week</h3>
         <span class="text-xs text-amber-500 font-black flex items-center gap-1">
-          <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse inline-block"></span>LIVE
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block"></span>MAR 2026
         </span>
       </div>
       <div class="space-y-3">
@@ -691,7 +691,7 @@ body { font-family: 'Inter', sans-serif; background: #f6f6f8; color: #0f172a; }
       </button>
     </div>
     <p class="text-center text-[10px] text-slate-400 mt-2 font-medium">
-      Powered by <span class="text-slate-600">Bright Data</span> + <span class="text-slate-600">Gemini AI</span>
+      Powered by <span class="text-slate-600">Bright Data</span> + <span class="text-slate-600">Groq AI</span>
     </p>
   </div>
 </div>
@@ -870,7 +870,7 @@ function goToChat() {
     const nbContext = neighborhood !== 'All Montgomery' 
       ? `\n\nI can see you're from **${neighborhood}** — I'll focus on data relevant to your area first!`
       : '';
-    addAIBubble(`👋 Hello! I'm your **Montgomery AI Assistant**, powered by Bright Data + Gemini AI.${nbContext}\n\nI have real data on:\n• 🛡️ Neighborhood safety & 911 stats\n• 💼 Jobs hiring right now\n• 🏚️ Vacant properties\n• 🏛️ City services & contacts\n• 📈 Montgomery's economic growth\n\nWhat would you like to know?`);
+    addAIBubble(`👋 Hello! I'm your **Montgomery AI Assistant**, powered by Bright Data + Groq AI.${nbContext}\n\nI have real data on:\n• 🛡️ Neighborhood safety & 911 stats\n• 💼 Jobs hiring right now\n• 🏚️ Vacant properties\n• 🏛️ City services & contacts\n• 📈 Montgomery's economic growth\n\nWhat would you like to know?`);
     chatStarted = true;
   }
 }
