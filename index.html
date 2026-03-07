@@ -700,7 +700,7 @@ body { font-family: 'Inter', sans-serif; background: #f6f6f8; color: #0f172a; }
 // ================================================================
 // STATE & CONFIG
 // ================================================================
-const GEMINI_KEY = 'AIzaSyAubgWEC2K9115S7m5SpFsoVUv6fuzbI58';
+const GROQ_KEY = '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';
 let persona = 'resident';
 let neighborhood = 'All Montgomery';
 let neighborhoodColor = 'blue';
@@ -975,49 +975,40 @@ async function sendMessage() {
       { role: 'user', parts: [{ text: text }] }
     ];
 
-    // Build a simple single-turn prompt with context
-    const systemPrompt = CITY_DATA + '\n\nUser persona: ' + persona + '. User neighborhood: ' + neighborhood + '.';
-    
-    // Build conversation as a single user message with history
-    let conversationText = systemPrompt + '\n\n';
-    chatHistory.slice(-6).forEach(m => {
-      conversationText += (m.role === 'user' ? 'User: ' : 'Assistant: ') + m.content + '\n';
-    });
-
     const payload = {
-      contents: [{
-        parts: [{ text: conversationText }]
-      }],
-      generationConfig: { 
-        temperature: 0.7, 
-        maxOutputTokens: 400
-      }
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        { role: 'system', content: CITY_DATA + '\n\nUser persona: ' + persona + '. User neighborhood: ' + neighborhood + '. Prioritise data about their neighborhood when relevant. Be concise and helpful.' },
+        ...chatHistory.slice(-6).map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }))
+      ],
+      max_tokens: 400,
+      temperature: 0.7
     };
 
     let reply = null;
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      }
-    );
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${GROQ_KEY}`
+      },
+      body: JSON.stringify(payload)
+    });
 
     const data = await res.json();
-    console.log('Gemini response:', JSON.stringify(data).substring(0, 300));
+    console.log('Groq response:', JSON.stringify(data).substring(0, 300));
 
     removeTyping();
 
-    if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
-      reply = data.candidates[0].content.parts[0].text;
+    if (data.choices?.[0]?.message?.content) {
+      reply = data.choices[0].message.content;
       chatHistory.push({ role: 'assistant', content: reply });
       addAIBubble(reply);
     } else if (data.error) {
-      console.error('Gemini error:', data.error);
-      addAIBubble(`⚠️ API Error: ${data.error.message || 'Unknown error'}. Check console for details.`);
+      console.error('Groq error:', data.error);
+      addAIBubble(`⚠️ API Error: ${data.error.message || 'Unknown error'}`);
     } else {
-      addAIBubble('⚠️ No response from Gemini. Check console (F12) for details.');
+      addAIBubble('⚠️ No response. Check console (F12) for details.');
     }
   } catch (e) {
     removeTyping();
